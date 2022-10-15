@@ -1,4 +1,4 @@
-var map;
+let map;
 let paths;
 let nodes;
 let sources;
@@ -21,35 +21,92 @@ fetch('./Layers/Destinations.geojson')
     .then(json => destinations = json);
 
 
-DG.then(function () {
+
+DG.then(() => {
     map = DG.map('map', {
         center: [54.514635, 36.252962],
         zoom: 16,
     });
+    const valveIcon = DG.icon({
+        iconUrl: '/img/valve.svg',
+        iconRetinaUrl: '/img/valve.svg',
+        iconSize: [20, 20],
+        iconAnchor: [10, 10],
+        popupAnchor: [0, 0],
+    });
 
-    DG.geoJson(nodes, {
-        onEachFeature: function (feature, layer) {
+    const sourceIcon = DG.icon({
+        iconUrl: '/img/source.svg',
+        iconRetinaUrl: '/img/source.svg',
+        iconSize: [20, 20],
+        iconAnchor: [10, 10],
+        popupAnchor: [0, 0],
+    });
+
+    const destinationIcon = DG.icon({
+        iconUrl: '/img/destination.svg',
+        iconRetinaUrl: '/img/destination.svg',
+        iconSize: [20, 20],
+        iconAnchor: [10, 10],
+        popupAnchor: [0, 0],
+    });
+
+
+    const nodesLayer = DG.geoJson(nodes, {
+        pointToLayer: (geoJsonPoint, latlng) => { return DG.marker(latlng, { icon: valveIcon }); },
+        onEachFeature: (feature, layer) => {
             layer.bindPopup('Колодец ' + feature.properties.Name + '.');
         }
-    }).addTo(map);
-    DG.geoJson(paths, {
-        onEachFeature: function (feature, layer) {
+    });
+
+    const pathsLayer = DG.geoJson(paths, {
+        onEachFeature: (feature, layer) => {
             layer.bindPopup('Труба, соединяющая участок ' + feature.properties.Begin_uch + ' и ' + feature.properties.End_uch);
         }
-    }).addTo(map);
+    });
 
-    DG.geoJson(sources, {
-        onEachFeature: function (feature, layer) {
+    const sourcesLayer = DG.geoJson(sources, {
+        pointToLayer: (geoJsonPoint, latlng) => { return DG.marker(latlng, { icon: sourceIcon }); },
+        onEachFeature: (feature, layer) => {
             layer.bindPopup('Источник ' + feature.properties.Name + '.');
         }
 
-    }).addTo(map);
+    });
 
-    DG.geoJson(destinations, {
-        onEachFeature: function (feature, layer) {
+    const destinationsLayer = DG.geoJson(destinations, {
+        pointToLayer: (geoJsonPoint, latlng) => { return DG.marker(latlng, { icon: destinationIcon }); },
+        onEachFeature: (feature, layer) => {
             layer.bindPopup('Заход ' + feature.properties.Name + '.');
         }
 
-    }).addTo(map);
+    });
+
+    const layers = {
+        nodes: nodesLayer,
+        paths: pathsLayer,
+        sources: sourcesLayer,
+        dests: destinationsLayer
+    }
+    const layersState = {
+        nodes: false,
+        paths: false,
+        dests: false,
+        sources: false
+    }
+
+    document.querySelectorAll('.control__btn').forEach(domNode => {
+        domNode.addEventListener('click', e => {
+            if (layersState[e.target.id]) {
+                layers[e.target.id].remove();
+                e.target.innerHTML = 'Показать';
+                layersState[e.target.id] = false;
+            }
+            else {
+                layers[e.target.id].addTo(map);
+                e.target.innerHTML = 'Скрыть';
+                layersState[e.target.id] = true;
+            }
+        })
+    })
 });
 
