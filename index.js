@@ -20,40 +20,6 @@ fetch('./Layers/Destinations.geojson')
     .then(response => response.json())
     .then(json => destinations = json);
 
-// const brokenPaths = {
-//     sys: [160, 111, 113, 15, 16]
-// }
-
-// const brokenNodes = {
-//     sys: [12, 13, 14, 15, 16]
-// }
-
-// fetch('http://192.168.3.192/GetNames?type=node&sys=2', {
-//     method: 'get',
-// }).then(res => res.json()).then(json => {
-
-//     brokenNodes.sys = json.nodes;
-//     brokenPaths.sys = json.paths
-// });
-
-// const showSelectedElementData = (feature) => {
-//     const brokenPaths = {
-//         sys: []
-//     }
-
-//     const brokenNodes = {
-//         sys: []
-//     }
-
-//     fetch(`http://192.168.3.192/GetNames?type=${feature.type}&sys=${feature.sys}`, {
-//         method: 'get',
-//     }).then(res => res.json()).then(json => {
-//         layers['nodes'].setStyle()
-//         brokenNodes.sys = json.nodes;
-//         brokenPaths.sys = json.paths
-//     });
-// }
-
 const setStyleOnLayerGroup = (layerGroup, layersToChange, styleCallback) => {
     if (layersToChange.length === 0) {
         layerGroup.eachLayer(layer => {
@@ -102,15 +68,9 @@ DG.then(() => {
         pointToLayer: (feature, latlng) => {
             return DG.marker(latlng, { icon: valveIcon });
         },
-        // onEachFeature: (feature, layer) => {
-        //     layer.bindPopup('Колодец ' + feature.properties.Name + '. Sys: ' + feature.properties.Sys);
-        // }
     });
 
     const pathsLayer = DG.geoJson(paths, {
-        // onEachFeature: (feature, layer) => {
-        //     layer.bindPopup('Труба, соединяющая участок ' + feature.properties.Begin_uch + ' и ' + feature.properties.End_uch + '. Sys: ' + feature.properties.Sys);
-        // },
         style: (feature) => {
             return { color: '#0f0' }
         }
@@ -125,7 +85,7 @@ DG.then(() => {
     });
 
     const destinationsLayer = DG.geoJson(destinations, {
-        // pointToLayer: (geoJsonPoint, latlng) => { return DG.marker(latlng, { icon: valveIcon }); },
+        pointToLayer: (geoJsonPoint, latlng) => { return DG.marker(latlng, { icon: valveIcon }); },
         onEachFeature: (feature, layer) => {
             layer.bindPopup('Заход ' + feature.properties.Name + '. Sys: ' + feature.properties.Sys);
         }
@@ -139,12 +99,19 @@ DG.then(() => {
         dests: destinationsLayer
     }
 
+    const resetStyles = () => {
+        setStyleOnLayerGroup(layers.paths, [], layer => layer.setStyle({ color: '#0f0' }))
+        setStyleOnLayerGroup(layers.nodes, [], layer => layer.setIcon(valveIcon))
+        setStyleOnLayerGroup(layers.dests, [], layer => layer.setIcon(valveIcon))
+    }
+
     layers.nodes.eachLayer(layer => {
         layer.bindPopup(`<p>Колодец с Sys ${layer.feature.properties.Sys}</p><br/><button id='${layer.feature.properties.Sys}'>Смоделировать поломку</button>`)
             .on('popupopen', () => {
                 pending = false;
                 document.getElementById(layer.feature.properties.Sys).addEventListener('click', e => {
                     if (pending) return;
+                    resetStyles();
                     console.log('AJAX')
                     // AJAX REQUEST
                     // fetch(`http://192.168.3.192/GetNames?type=node&sys=${layer.feature.properties.Sys}`)
@@ -159,17 +126,12 @@ DG.then(() => {
 
                     // Fake AJAX
                     setTimeout(() => {
-                        setStyleOnLayerGroup(layers.paths, [160, 113, 111], layer => layer.setStyle({ color: '#f00' }))
-                        setStyleOnLayerGroup(layers.nodes, [110], layer => layer.setIcon(brokenIcon))
-                        setStyleOnLayerGroup(layers.dests, ['none'], layer => layer.setIcon(brokenIcon))
+                        setStyleOnLayerGroup(layers.paths, [160, 113, 111, 162], layer => layer.setStyle({ color: '#f00' }))
+                        setStyleOnLayerGroup(layers.nodes, [110, 159], layer => layer.setIcon(brokenIcon))
+                        setStyleOnLayerGroup(layers.dests, [161, 112], layer => layer.setIcon(brokenIcon))
                     }, 1000)
                     pending = true;
                 })
-            })
-            .on('popupclose', () => {
-                setStyleOnLayerGroup(layers.paths, [], layer => layer.setStyle({ color: '#0f0' }))
-                setStyleOnLayerGroup(layers.nodes, [], layer => layer.setIcon(valveIcon))
-                setStyleOnLayerGroup(layers.dests, [], layer => layer.setIcon(valveIcon))
             })
     })
 
@@ -179,6 +141,7 @@ DG.then(() => {
                 pending = false;
                 document.getElementById(layer.feature.properties.Sys).addEventListener('click', e => {
                     if (pending) return;
+                    resetStyles();
                     console.log('AJAX')
                     fetch(`http://192.168.3.192/GetNames?type=path&sys=${layer.feature.properties.Sys}`)
                         .then(res => res.json())
@@ -191,12 +154,9 @@ DG.then(() => {
                     pending = true;
                 })
             })
-            .on('popupclose', () => {
-                setStyleOnLayerGroup(layers.paths, [], layer => layer.setStyle({ color: '#0f0' }))
-                setStyleOnLayerGroup(layers.nodes, [], layer => layer.setIcon(valveIcon))
-                setStyleOnLayerGroup(layers.dests, [], layer => layer.setIcon(valveIcon))
-            })
     })
+
+    document.querySelector('.reset__btn').addEventListener('click', resetStyles)
 
 
     // Render
