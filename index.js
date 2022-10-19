@@ -34,6 +34,17 @@ const setStyleOnLayerGroup = (layerGroup, layersToChange, styleCallback) => {
     })
 }
 
+const brokenElements = {
+    nodes: [],
+    paths: []
+}
+
+const writeBroken = () => {
+    let inner = brokenElements.nodes.length ? ('Колодцы с Sys ' + brokenElements.nodes.join(', ') + '.</br>') : '';
+    inner += brokenElements.paths.length ? ('Трубы с Sys ' + brokenElements.paths.join(', ') + '.') : '';
+    document.getElementById('broken__elements').innerHTML = inner;
+}
+
 DG.then(() => {
     map = DG.map('map', {
         center: [54.514635, 36.252962],
@@ -103,6 +114,9 @@ DG.then(() => {
         setStyleOnLayerGroup(layers.paths, [], layer => layer.setStyle({ color: '#0f0' }))
         setStyleOnLayerGroup(layers.nodes, [], layer => layer.setIcon(valveIcon))
         setStyleOnLayerGroup(layers.dests, [], layer => layer.setIcon(valveIcon))
+        brokenElements.nodes = []
+        brokenElements.paths = []
+        writeBroken();
     }
 
     layers.nodes.eachLayer(layer => {
@@ -111,25 +125,28 @@ DG.then(() => {
                 pending = false;
                 document.getElementById(layer.feature.properties.Sys).addEventListener('click', e => {
                     if (pending) return;
-                    resetStyles();
+                    if (!brokenElements.nodes.find(sys => sys === layer.feature.properties.Sys)) {
+                        brokenElements.nodes.push(layer.feature.properties.Sys);
+                    }
+                    writeBroken();
+                    // resetStyles();
                     console.log('AJAX')
                     // AJAX REQUEST
-                    // fetch(`http://192.168.3.192/GetNames?type=node&sys=${layer.feature.properties.Sys}`)
-                    //     .then(res => res.json())
-                    //     .then(json => {
-                    //         setStyleOnLayerGroup(layers.paths, json.paths, layer => layer.setStyle({ color: '#f00' }))
-                    //         setStyleOnLayerGroup(layers.nodes, json.nodes, layer => layer.setIcon(brokenIcon))
-                    //         setStyleOnLayerGroup(layers.dests, json.dest, layer => layer.setIcon(brokenIcon))
-                    //     }
-                    //     );
-
+                    fetch(`http://192.168.3.192/GetNames?type=node&sys=${layer.feature.properties.Sys}`)
+                        .then(res => res.json())
+                        .then(json => {
+                            setStyleOnLayerGroup(layers.paths, json.paths, layer => layer.setStyle({ color: '#f00' }))
+                            setStyleOnLayerGroup(layers.nodes, json.nodes, layer => layer.setIcon(brokenIcon))
+                            setStyleOnLayerGroup(layers.dests, json.dest, layer => layer.setIcon(brokenIcon))
+                        }
+                        );
 
                     // Fake AJAX
-                    setTimeout(() => {
-                        setStyleOnLayerGroup(layers.paths, [160, 113, 111, 162], layer => layer.setStyle({ color: '#f00' }))
-                        setStyleOnLayerGroup(layers.nodes, [110, 159], layer => layer.setIcon(brokenIcon))
-                        setStyleOnLayerGroup(layers.dests, [161, 112], layer => layer.setIcon(brokenIcon))
-                    }, 1000)
+                    // setTimeout(() => {
+                    //     setStyleOnLayerGroup(layers.paths, [160, 113, 111, 162], layer => layer.setStyle({ color: '#f00' }))
+                    //     setStyleOnLayerGroup(layers.nodes, [110, 159], layer => layer.setIcon(brokenIcon))
+                    //     setStyleOnLayerGroup(layers.dests, [161, 112], layer => layer.setIcon(brokenIcon))
+                    // }, 1000)
                     pending = true;
                 })
             })
@@ -141,9 +158,12 @@ DG.then(() => {
                 pending = false;
                 document.getElementById(layer.feature.properties.Sys).addEventListener('click', e => {
                     if (pending) return;
-                    resetStyles();
+                    if (!brokenElements.paths.find(sys => sys === layer.feature.properties.Sys)) {
+                        brokenElements.paths.push(layer.feature.properties.Sys);
+                    }
+                    writeBroken();
                     console.log('AJAX')
-                    fetch(`http://192.168.3.192/GetNames?type=path&sys=${layer.feature.properties.Sys}`)
+                    fetch(`http://192.168.3.192/GetNames?type=plot&sys=${layer.feature.properties.Sys}`)
                         .then(res => res.json())
                         .then(json => {
                             setStyleOnLayerGroup(layers.paths, json.paths, layer => layer.setStyle({ color: '#f00' }))
